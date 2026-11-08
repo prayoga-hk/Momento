@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#100d2a">
+  <meta name="description" content="Memento 64 — a 90s-style memory matching game built with Vue 3. No database, no accounts, just play.">
+  <title>MEMENTO 64 — Memory Match</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2212%22 fill=%22%23100d2a%22/><rect x=%226%22 y=%226%22 width=%2288%22 height=%2288%22 rx=%228%22 fill=%22none%22 stroke=%22%23ffd23f%22 stroke-width=%226%22/><text y=%22.78em%22 x=%22.5em%22 text-anchor=%22middle%22 font-family=%22monospace%22 font-size=%2260%22 font-weight=%22bold%22 fill=%22%23ff4fa3%22>M</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" v-cloak>
+    <div class="ambient ambient--one" aria-hidden="true"></div>
+    <div class="ambient ambient--two" aria-hidden="true"></div>
+    <div class="pixel-sun" aria-hidden="true"></div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Memento 64 home">
+          <span class="brand__mark" aria-hidden="true">M</span>
+          <span class="brand__name">MEMENTO <b>64</b></span>
+        </a>
+        <div class="topbar__meta">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>POWER</span>
+          <span class="topbar__divider" aria-hidden="true"></span>
+          <span>16-BIT MEMORY SYSTEM</span>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero__copy">
+          <p class="eyebrow"><span aria-hidden="true">▶</span> PLAYER 1 · READY</p>
+          <h1>MATCH<br><span>ALL PAIRS.</span></h1>
+          <p class="lede">
+            Flip two cards. Find the match. Clear the board. The clock starts on
+            your first move — no continues, no database, just pure memory.
+          </p>
+        </div>
+
+        <aside class="scorecard" aria-label="Current game stats">
+          <div class="scorecard__top">
+            <span>PLAYER 1</span>
+            <span>MODE: {{ difficultyLabel }}</span>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="stat__label">MOVES</span>
+              <strong class="stat__value">{{ moves }}</strong>
+            </div>
+            <div class="stat">
+              <span class="stat__label">TIME</span>
+              <strong class="stat__value stat__value--mono">{{ timeLabel }}</strong>
+            </div>
+            <div class="stat">
+              <span class="stat__label">PAIRS</span>
+              <strong class="stat__value">{{ matchedCount }}<small>/{{ config.pairs }}</small></strong>
+            </div>
+          </div>
+
+          <div class="progress" aria-hidden="true">
+            <span class="progress__fill" :style="{ width: progressPercent + '%' }"></span>
+          </div>
+
+          <div v-if="bestForLevel" class="best">
+            <span class="best__spark" aria-hidden="true">★</span>
+            <span>HI-SCORE</span>
+            <strong>{{ bestForLevel.moves }} MOVES</strong>
+            <span class="best__time">{{ formatTime(bestForLevel.seconds) }}</span>
+          </div>
+          <div v-else class="best best--empty">
+            <span class="best__spark" aria-hidden="true">☆</span>
+            <span>NO HI-SCORE YET — GO SET ONE.</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="game-panel" aria-labelledby="board-heading">
+        <div class="console-header" aria-hidden="true">
+          <span>MEMENTO ENTERTAINMENT SYSTEM</span>
+          <span class="console-header__model">MODEL MT-64</span>
+        </div>
+
+        <div class="panel-bar">
+          <div class="difficulty" role="group" aria-label="Choose difficulty">
+            <button
+              v-for="(option, key) in difficulties"
+              :key="key"
+              type="button"
+              class="difficulty__button"
+              :class="{ 'is-active': difficulty === key }"
+              :aria-pressed="difficulty === key"
+              @click="setDifficulty(key)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+
+          <button type="button" class="new-game" @click="startGame">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/>
+            </svg>
+            RESET
+          </button>
+        </div>
+
+        <div class="screen-frame">
+          <div class="screen">
+            <div class="board-meta">
+              <h2 id="board-heading" class="sr-only">Memory board</h2>
+              <span><span class="board-meta__cursor" aria-hidden="true">▶</span> {{ statusLabel }}</span>
+              <span class="board-meta__hint">CLICK A CARD TO FLIP</span>
+            </div>
+
+            <div class="board" :style="{ '--cols': config.cols }" role="group" aria-label="Memory cards">
+              <button
+                v-for="(card, index) in deck"
+                :key="card.id"
+                type="button"
+                class="card"
+                :class="{
+                  'is-flipped': isFlipped(card),
+                  'is-matched': card.matched,
+                  'is-wrong': wrongIds.includes(card.id)
+                }"
+                :aria-label="cardLabel(card, index)"
+                :aria-pressed="isFlipped(card)"
+                :disabled="lock || card.matched"
+                @click="flipCard(card)"
+              >
+                <span class="card__inner">
+                  <span class="card__face card__front" aria-hidden="true">
+                    <span class="card__pattern"></span>
+                    <span class="card__star">?</span>
+                  </span>
+                  <span class="card__face card__back" :class="{ 'has-sticker': card.sticker }" aria-hidden="true">
+                    <span v-if="card.sticker" class="card__sticker" :style="{ backgroundImage: 'url(' + card.sticker + ')' }"></span>
+                    <span class="card__badge" :style="{ color: card.color }">
+                      <span class="card__symbol">{{ card.symbol }}</span>
+                    </span>
+                  </span>
+                </span>
+              </button>
+            </div>
+
+            <transition name="pop">
+              <div v-if="isWon" class="win" role="status" aria-live="polite">
+                <div class="win__icon" aria-hidden="true">★</div>
+                <div class="win__copy">
+                  <p class="eyebrow">{{ isNewRecord ? 'NEW HI-SCORE!' : 'STAGE CLEAR!' }}</p>
+                  <h2>YOU WIN!</h2>
+                  <p>ALL {{ config.pairs }} PAIRS IN {{ moves }} MOVES AND {{ timeLabel }}.</p>
+                </div>
+                <button type="button" class="win__button" @click="startGame">PLAY AGAIN</button>
+              </div>
+            </transition>
+          </div>
+
+          <span class="screen-frame__label" aria-hidden="true">16-BIT COLOR MATRIX</span>
+        </div>
+
+        <div class="console-deck" aria-hidden="true">
+          <div class="speaker">
+            <i v-for="n in 7" :key="n"></i>
+          </div>
+          <span class="console-deck__copy">MEMENTO · STEREO SOUND</span>
+          <span class="console-deck__power"><i></i> POWER</span>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>© 1994 MEMENTO SYSTEMS · BUILT WITH <strong>VUE 3</strong></p>
+        <p>NO DATABASE · NO ACCOUNTS · HI-SCORES SAVED LOCALLY</p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="vue.global.prod.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
