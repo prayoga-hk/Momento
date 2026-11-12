@@ -19,7 +19,9 @@ const SYMBOL_COLORS = {
 const STICKERS = [
   "stickers/jb-blue.webp",
   "stickers/jb-red.webp",
-  "stickers/jb-purple.webp"
+  "stickers/jb-purple.webp",
+  "stickers/jb-green.webp",
+  "stickers/jb-pink.webp"
 ];
 
 const DIFFICULTIES = {

@@ -13,7 +13,7 @@ Game mencocokkan memori (memory match) bergaya konsol genggam 90-an. Dibuat meng
 - **Vue 3** (production build lokal, dimuat via tag `<script>`).
 - **Tampilan Retro:** UI konsol 90-an dengan efek layar CRT, garis *scanline*, tombol tebal, dan font piksel.
 - **Tingkat Kesulitan & Papan:** Tiga ukuran papan — Easy (6 pasang), Medium (8 pasang), Hard (10 pasang).
-- **Desain Kartu:** Mode Hard menggunakan stiker wokee dana masuk boskyuh, nipukah, cek pm ya boskyuh yang sedang ramai saat ini dengan *badge* yang berbeda-beda. Mode Easy dan Medium menggunakan desain *glyph* neon.
+- **Desain Kartu:** Mode Hard menggunakan lima stiker meme Indonesia yang sedang ramai — wokee dana masuk boskyuh, nipukah, cek pm ya boskyuh, mana bukti tf, dan makan nih keteck boskyuh — dengan *badge* yang berbeda-beda. Mode Easy dan Medium menggunakan desain *glyph* neon.
 - **Interaksi & Skor:** Animasi kartu berputar, umpan balik saat cocok, serta panel waktu, langkah, dan skor.
 - **Rekor Pribadi:** Skor terbaik per tingkat kesulitan disimpan di `localStorage` (`memento.best.v1`).
 - **Aksesibilitas:** Layout responsif, kartu bisa diakses via keyboard, dan mendukung fitur *reduced-motion*.
